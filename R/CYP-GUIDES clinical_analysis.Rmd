@@ -19,7 +19,7 @@ source("src.R")
 ```
 
 ## Hello!
-I wanted to showcase my R statistical analysis skills using a Kaggle clinical trial dataset. Please see my work below :)
+I wanted to showcase my R statistical analysis skills using a Kaggle clinical trial dataset. This is a work in progress! Please see my work below :)
 
 # Data Description: 
 Source: [Kaggle](https://www.kaggle.com/datasets/shashwatwork/clinical-dataset-of-the-cypguides-trial/data)
@@ -114,5 +114,14 @@ desc.stats2 <- df %>%
     RAR == 1 ~ ("Re-Admitted")
   )) %>%
   group_by(Assignment,RAR) %>%
-  summarize(sum = n()) 
+  summarize(Count = n()) %>%
+  ungroup() %>%
+  mutate(Percent = (Count/sum(Count) * 100))
+  
+  rename(`Therapy Type` = Assignment) %>%
+
+
+caption <- "Table 2. Summary statistics of the CYP-GUIDES study"
+tbl <- format_output(desc.stats2,caption)
+FitFlextableToPage(tbl)
 ```
