@@ -1,0 +1,115 @@
+---
+title: "Statistical Analysis of CYP-GUIDES Clinical Data"
+output: word_document
+mainfont: Calibri
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, fig.width = 7.5)
+options(warn = -1)
+options(dplyr.summarise.inform=FALSE)
+library(tidyverse)
+library(knitr)
+library(pander)
+library(ggpubr)
+```
+
+```{r define_functions, include= FALSE}
+source("src.R")
+```
+
+# Data Description: 
+Source: [Kaggle](https://www.kaggle.com/datasets/shashwatwork/clinical-dataset-of-the-cypguides-trial/data)
+
+### Context
+CYP-GUIDES (Cytochrome Psychotropic Genotyping Under Investigation for Decision Support) is a randomized controlled trial (RCT) comparing 2 outcomes in hospitalized patients with severe depressive disorders treated according to the patient's CYP2D6 genotype and functional status versus standard psychotropic therapy. The primary outcome was hospital Length of Stay (LOS) and the secondary outcome was the Re-Admission Rate (RAR) 30 days after discharge.
+
+The trial setting was the Institute of Living at Hartford Hospital. CYP2D6 genotyping was implemented to characterize the functional status of the CYP2D6 enzyme with sub-normal, normal, or supra-normal function. The electronic medical record (EMR) was utilized to transmit clinically actionable drug prescribing guidance based on the patient's CYP2D6 function to the physician.
+
+### Content
+The RCT recruited 1500 patients, genotyped CYP2D6 in 1459, and randomized 477 to standard therapy (Group S), for whom treatment-as-usual guidance was delivered without consideration of patient CYP2D6 genotype, and 982 to genetically-guided therapy (Group G) where CYP2D6-based treatment recommendations were provided via EMR to physicians. For inpatients in Group G whose CYP2D6 function was sub- or supra-normal, medications primarily metabolized by the CYP2D6 enzyme were proscribed.
+
+The RCT developed a database of potential benefits to the field. The pharmacologic, clinical course, and pharmacogenetic therapeutic guidance is being published in a related article. These data should enable various investigators to assess effeeffects of clinical decision support on resource utilization and psychotropic therapy during psychiatric hospitalizations.
+
+## Acknowledgements
+Tortora, Joseph; Robinson, Saskia; Baker, Seth; Ruaño, Gualberto (2020), “Clinical Dataset of the CYP-GUIDES Trial”, Mendeley Data, V1, doi: 10.17632/25yjwbphn4.1 Source
+
+### Summary Statistics of Data:
+
+```{r}
+demo <- get_demo_tbl()
+caption <- "Table 1. Summary Statistics of the demographics of the CYP-GUIDES study"
+tbl <- format_output(demo,caption)
+FitFlextableToPage(tbl)
+```
+
+## Is the LOS Significantly Different Between the Two Treatments?
+
+Below is R code that performs statistical analyses on the LOS between the two groups, patients who were genotyped and treated accordingly, and patients who were not genotyped and given standard treatment. A descriptive statistics table of the mean LOS of the two groups is produced. 
+
+```{r, echo = TRUE, include = TRUE, warning= FALSE, message = FALSE}
+df <- read_csv("Dataset.csv") # Read in dataset
+
+desc.stats <- df %>%
+  filter(!is.na(Assignment)) %>% # Filter all Assignments that are NA
+  mutate(Assignment = case_when(
+    Assignment == "G" ~ "Genetically-guided therapy",
+    Assignment == "S" ~ ("Standard Therapy")
+  )) %>%
+  group_by(Assignment) %>%
+  summarise(avg_LOS = mean(LOS), sd_LOS = sd(LOS), n = n()) %>% # Find mean LOS, SD LOS, and count of each group type
+  mutate(se = sd_LOS / sqrt(n)) %>% # Find standard error between mean of each group
+  mutate(lower_CI = avg_LOS - 1.96 * se,
+         upper_CI = avg_LOS + 1.96 * se) %>% # Calculate upper and lower bounds of 95% confidence interval of mean
+  select(Assignment, avg_LOS, lower_CI, upper_CI) %>%
+  rename(`Mean LOS` = avg_LOS,
+         `Lower CI` = lower_CI,
+         `Upper CI` = upper_CI
+         )
+
+caption <- "Table 2. Descriptive statistics of the CYP-GUIDES study"
+tbl <- format_output(desc.stats,caption)
+FitFlextableToPage(tbl)
+```
+
+With this table, we can write our Hypotheses:
+
+Null Hypothesis: There is no difference between the length of stay between the two therapies<b>
+Alternative Hypothesis: There is a difference between the length of stay between two therapies.
+
+We will now conduct a T-Test to determine if there is a significant difference between the mean LOS between the two therapies.
+
+```{r, echo = TRUE, include = TRUE, warning= FALSE, message = FALSE}
+t.test <- df %>%
+  mutate(p_value = t.test(LOS ~ Assignment)$p.value) %>%
+  distinct(p_value)
+```
+
+We have found that the p-value of the T-test is `r t.test`, and can accept that the null hypothesis is true. There is no significant difference between the LOS in the two groups.
+
+## ANOVA Testing for LOS between Therapeutic Guidances
+To be continued...
+
+
+
+
+## Patient-Readmittance Based on Treatment and Therapeutic Guidances
+
+To be continued...
+
+```{r}
+df <- read_csv("Dataset.csv") # Read in dataset
+
+desc.stats2 <- df %>%
+  filter(!is.na(Assignment)) %>% # Filter all Assignments that are NA
+  mutate(Assignment = case_when(
+    Assignment == "G" ~ "Genetically-guided therapy",
+    Assignment == "S" ~ ("Standard Therapy")
+  ),
+  RAR = case_when(
+    RAR == 0 ~ ("Not Re-Admitted"),
+    RAR == 1 ~ ("Re-Admitted")
+  )) %>%
+  group_by(Assignment,RAR) %>%
+  summarize(sum = n()) 
+```
