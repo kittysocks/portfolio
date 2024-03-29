@@ -77,30 +77,75 @@ FitFlextableToPage(tbl)
 
 With this table, we can write our Hypotheses:
 
-Null Hypothesis: There is no difference between the length of stay between the two therapies<b>
-Alternative Hypothesis: There is a difference between the length of stay between two therapies.
+Null Hypothesis: There is no difference between the length of stay between the two therapies.
+<p> Alternative Hypothesis: There is a difference between the length of stay between two therapies.
 
 We will now conduct a T-Test to determine if there is a significant difference between the mean LOS between the two therapies.
 
 ```{r, echo = TRUE, include = TRUE, warning= FALSE, message = FALSE}
-t.test <- df %>%
+p_value <- df %>%
   mutate(p_value = t.test(LOS ~ Assignment)$p.value) %>%
   distinct(p_value)
+print(paste0(p_value))
 ```
 
-We have found that the p-value of the T-test is `r t.test`, and can accept that the null hypothesis is true. There is no significant difference between the LOS in the two groups.
+We have found that the p-value of the T-test is `r p_value`, and can accept that the null hypothesis is true. There is no significant difference between the LOS in the two groups.
 
 ## ANOVA Testing for LOS between Therapeutic Guidances
-To be continued...
+
+There are three types of Therapeutic Guidances. I'm wondering if the descriptive statistics will be the similar to the descriptive statistics between the two types of therapies.
+
+```{r echo = TRUE, include = TRUE, warning= FALSE, message = FALSE}
+df <- read_csv("Dataset.csv") # Read in dataset
+
+desc.stats2 <- df %>%
+  rename(therp.guidance = `Therapeutic Guidances`) %>%
+  filter(!is.na(therp.guidance)) %>%
+  group_by(therp.guidance) %>%
+  summarise(avg_LOS = mean(LOS), sd_LOS = sd(LOS), n = n()) %>% # Find mean LOS, SD LOS, and count of each group type
+  mutate(se = sd_LOS / sqrt(n)) %>% # Find standard error between mean of each group
+  mutate(lower_CI = avg_LOS - 1.96 * se,
+         upper_CI = avg_LOS + 1.96 * se) %>% # Calculate upper and lower bounds of 95% confidence interval of mean
+  select(therp.guidance, avg_LOS, lower_CI, upper_CI) %>%
+  rename(`Mean LOS` = avg_LOS,
+         `Lower CI` = lower_CI,
+         `Upper CI` = upper_CI,
+         `Therapy Guidance` = therp.guidance
+         )
+
+caption <- "Table 3. Descriptive statistics of the CYP-GUIDES study"
+tbl <- format_output(desc.stats2,caption)
+FitFlextableToPage(tbl)
+```
+
+Again, with this table, we can write our hypotheses:
+
+Null Hypothesis: There is no difference between the length of stay between the different Therapy Guidances.
+<p> Alternative Hypothesis: There is a difference between the length of stay between different Therapy Guidances.
 
 
+Let's see the variance between the three therapeutic groups:
 
+```{r echo = TRUE, include = TRUE, warning= FALSE, message = FALSE}
+df <- read_csv("Dataset.csv") # Read in dataset
+
+aov.test <- df %>%
+  filter(!is.na(`Therapeutic Guidances`))
+
+result <- aov(LOS ~ `Therapeutic Guidances`, data = aov.test)
+summary(result)
+```
+The F-value between the Therapeutic Guidances is 0.297, which suggests that the differences in the LOS between the types of therapeutic guidances are small compared to the variability within the groups. The p-value is 0.743, which indicates that the differences in LOS are not statistically significant. Based on this analysis, there is no evidence to suggest that the therapeutic guidance statistically affects the length of stay for patients.  
+
+## Power Analysis 
+
+Something to consider in further studies is a Power Analysis. The Power Analysis will help us see the sample size needed to know that regardless of the p-value we get, we used enough data to make a good decision. I'm thinking of making another .Rmd for it though.
 
 ## Patient-Readmittance Based on Treatment and Therapeutic Guidances
 
 To be continued...
 
-```{r}
+```{r echo = TRUE, include = TRUE, warning= FALSE, message = FALSE}
 df <- read_csv("Dataset.csv") # Read in dataset
 
 desc.stats2 <- df %>%
@@ -118,8 +163,6 @@ desc.stats2 <- df %>%
   ungroup() %>%
   mutate(Percent = (Count/sum(Count) * 100))
   
-  rename(`Therapy Type` = Assignment) %>%
-
 
 caption <- "Table 2. Summary statistics of the CYP-GUIDES study"
 tbl <- format_output(desc.stats2,caption)
