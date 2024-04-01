@@ -1,0 +1,99 @@
+---
+title: "Power Analysis of CYP-Guides Experiment"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, fig.width = 7.5)
+options(warn = -1)
+options(dplyr.summarise.inform=FALSE)
+library(tidyverse)
+library(knitr)
+library(pander)
+library(ggpubr)
+```
+
+```{r define_functions, include= FALSE}
+source("src.R")
+```
+
+## Power Analysis of CYP-Guides
+
+This is a continued analysis from my other [.Rmd](https://github.com/kittysocks/portfolio/blob/main/R/CYP-GUIDES%20clinical_analysis.Rmd) that has the data description.  
+
+## Stratifying and Randomly 
+
+From my other .Rmd, I conducted a T-Test between the two. But I didn't consider that the therapy type sample sizes were far apart in range. There are 477 observations from Standard Therapy and 982 observations from Genetically-guided Therapy. I could either perform a Wilcox T-Test or stratify and randomly sample from the larger group. I'm going to randomly sample and perform a new T-test. 
+
+```{r}
+df <- read.csv("Dataset.csv")
+
+g <- df %>% filter(Assignment == "G") %>% pull(ID) # Stratify based on Therapy Type
+set.seed(123) # Setting a seed (This will allow the sample below to continue to be the same sample pulled each time, doing this for reproducibility)
+G_sample <- sample(g, size = 477, replace = FALSE) %>%
+  data.frame(ID = .) %>%
+  inner_join(df, by = "ID")
+
+s <- df %>% filter(Assignment == "S")
+df <- rbind(G_sample,s) %>% arrange(ID) # new df to do statistical testing on
+
+t.test <- t.test(df$LOS ~ df$Assignment)
+p_value <- t.test$p.value
+```
+
+Compared to doing a T-Test on the entire data ("0.515656957537065"), we got a p-value of `r p_value`. This still is not statistically significant. However, can we know that we did this p-value was found in good faith? Did we have enough data to conclude our p-value was founded as good?
+
+## Histogram of Two Therapy Groups
+
+Without the outliers
+
+```{r}
+
+x <- remove_LOS_outliers(G_sample)
+y <- remove_LOS_outliers(s)
+no_outliers.df <- rbind(x,y) %>% arrange(ID)
+
+no_outliers.df %>%
+  ggplot(aes(x = LOS, fill = Assignment)) +
+  geom_histogram(bins = 100, alpha = 0.5) +
+  geom_density(aes(y=0.5*..count..), colour="black", adjust=4) 
+```
+
+I want to do a Power Analysis of the CYP-GUIDES data. I am currently analyzing the LOS between the therapy two groups; the standard therapy control group, and the genetically-guided therapy experimental group. 
+
+Power is the probability that a statistical test will show a significant difference between the LOS of the two groups. 
+
+A Power Analysis will determine what sample size will ensure a high probability that we can correctly see results for the next time this experiment is performed. 
+
+If we use the sample size recommended by the Power Analysis, we will know that regardless of the statistical testing performed, we can know that we used enough data to make a good decision. 
+
+In order to do a Power Analysis, we want to know how much Power we want. A common value is 0.8. That means we want an 80% probability that we will see statistical significance. If we ran the experiment 100 times, 80 of the experiments would show statistical significance. After determining power, we need to determine the threshold for significance, which is called alpha. A common value for alpha is 0.05. We then need to determine the effect size, which is the difference between the two observation's means and standard deviation. The effect size is the overlap of data between the two groups. We can determine effect size by using the below formula:
+
+Effect size: 
+\(\frac{\text{The difference in means}}{\text{Pooled estimate standard deviations}}\) 
+
+Pooled estimate of standard deviations can be calculated using this:
+
+\[
+\sqrt{\frac{\text{s}^{2}+\text{s}^{2}}{\text{2}}}
+\]
+
+There are a lot of different ways to find effect size. It depends on your data. Sometimes through literature, you might have to make an educated guess. But luckily, we have the mean and the standard deviations of the two groups from the experiment. 
+
+```{r}
+desc.stats <- df %>%
+  filter(Assignment != "") %>% # Filter all Assignments that are NA
+  mutate(Assignment = case_when(
+    Assignment == "G" ~ "Genetically-guided therapy",
+    Assignment == "S" ~ ("Standard Therapy")
+  )) %>%
+  group_by(Assignment) %>%
+  summarise(avg_LOS = mean(LOS), sd_LOS = sd(LOS)) %>% # Find mean LOS, SD LOS, and
+  rename(`Therapy Type` = Assignment,
+         `Mean LOS` = avg_LOS,
+         `Standard Deviation` = sd_LOS) 
+
+caption <- "Table 1. Descriptive statistics of the CYP-GUIDES study"
+tbl <- format_output(desc.stats,caption)
+FitFlextableToPage(tbl)
+```

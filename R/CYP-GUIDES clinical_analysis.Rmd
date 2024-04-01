@@ -80,11 +80,11 @@ With this table, we can write our Hypotheses:
 Null Hypothesis: There is no difference between the length of stay between the two therapies.
 <p> Alternative Hypothesis: There is a difference between the length of stay between two therapies.
 
-We will now conduct a T-Test to determine if there is a significant difference between the mean LOS between the two therapies.
+We will now conduct a Welch's T-Test to determine if there is a significant difference between the mean LOS between the two therapies.
 
 ```{r, echo = TRUE, include = TRUE, warning= FALSE, message = FALSE}
 p_value <- df %>%
-  mutate(p_value = t.test(LOS ~ Assignment)$p.value) %>%
+  mutate(p_value = t.test(LOS ~ Assignment, var.equal = FALSE)$p.value) %>%
   distinct(p_value)
 print(paste0(p_value))
 ```

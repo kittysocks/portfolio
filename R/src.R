@@ -26,6 +26,16 @@ FitFlextableToPage <- function(ft, pgwidth = 6) {
   return(ft_out)
 }
 
+remove_LOS_outliers <- function(data) {
+  Q1 <- quantile(data$LOS, 0.25)
+  Q3 <- quantile(data$LOS, 0.75)
+  IQR <- Q3 - Q1
+  lower_bound <- Q1 - 1.5 * IQR
+  upper_bound <- Q3 + 1.5 * IQR
+  return(data %>%
+           filter(LOS >= lower_bound & LOS <= upper_bound))
+}
+
 
 get_demo_tbl <- function() {
 # Read in data from CYP-GUIDES Kaggle Dataset
