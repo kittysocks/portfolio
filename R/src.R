@@ -32,9 +32,20 @@ remove_LOS_outliers <- function(data) {
   IQR <- Q3 - Q1
   lower_bound <- Q1 - 1.5 * IQR
   upper_bound <- Q3 + 1.5 * IQR
-  return(data %>%
-           filter(LOS >= lower_bound & LOS <= upper_bound))
+  data <- data %>% filter(LOS >= lower_bound & LOS <= upper_bound)
+  return(data)
 }
+
+count_LOS_outliers <- function(data){
+  Q1 <- quantile(data$LOS, 0.25)
+  Q3 <- quantile(data$LOS, 0.75)
+  IQR <- Q3 - Q1
+  lower_bound <- Q1 - 1.5 * IQR
+  upper_bound <- Q3 + 1.5 * IQR
+  data <- data %>% filter(LOS < lower_bound | LOS > upper_bound) 
+  
+  return(data)
+  }
 
 
 get_demo_tbl <- function() {
