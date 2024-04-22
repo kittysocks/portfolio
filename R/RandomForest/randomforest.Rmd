@@ -1,0 +1,53 @@
+---
+title: "Random Forest: Churn Prediction Model"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,fig.width = 7.5)
+options(warn = -1)
+library(tidyverse)
+library(rpart)
+library(rpart.plot)
+```
+
+Hello, I want to showcase my understanding and knowledge of Random Forest in my own words and code. Specifically, I wanted to focus on a Churn Prediction model using Random Forest, as this is very applicable the type of work I want to do. I am borrowing heavily from the work of Natassha Selvaraj, as she wrote a wonderful, detailed article for 365 DataScience that gave an in-depth tutorial for a Churn Prediction model in Python. I am also thankful to the countless Youtube and Google searches I've watched for better understanding of the Random Forest concepts. 
+
+## Inspiration and Data Source: 
+* [365 DataScience Tutorial by Natassha Selvaraj](https://365datascience.com/tutorials/python-tutorials/how-to-build-a-customer-churn-prediction-model-in-python/)
+* [Kaggle](https://www.kaggle.com/datasets/blastchar/telco-customer-churn)
+
+\newpage
+
+## What do I know About Random Forest?
+
+From my background, I know that a random forest is composed of an ensemble of decision trees. Decision trees look like a flow chart, but they actually help make predictions based on data. A decision tree makes an initial statement, known as the root, and then makes decisions. There are two types of decisions, the internal nodes, which split the data into smaller subsets, and then there are leaf nodes, which is an outcome or prediction and does not further split the data. I'll show an [example](https://www.spsanderson.com/steveondata/posts/2023-09-29/index.html) with the famous Iris (flower) data set.
+
+```{r, fig.height = 4, fig.width= 5}
+tree_model <- rpart(Species ~., data = iris, method = "class")
+rpart.plot(tree_model, box.palette = "RdBu", shadow.col = "gray", nn = FALSE, extra = 0)
+```
+
+The decision tree created shows the decisions leading to accurately naming the species of Iris based on Petal sizes. If we had an Iris with a petal length of 2.8 cm and a petal width of 1.9 cm, we would start at the root node of the decision tree. Since the iris petal length is greater than 2.5 cm, we can move onto the right branch of the decision tree. This internal node then splits the data, and asks about petal width. Since the petal width is greater than 1.8, we can move to the right leaf node, which determines the species is 'virginica'. If the petal length was less than 2.5, the data would not be needed to be split, we could move to the left side of the branch, and get the outcome 'setosa'.  
+
+CART (Classification[Category] and Regression[Numeric] Trees) Decision trees are found using the Gini Impurity, or measures of Entropy, which evaluate the quality of where a decision tree is split. 
+
+Decision trees work well with the data used to create them (training data), but can be highly sensitive to any changes in the data frame. , but they can be inaccurate and not flexible when it comes to using the decision trees on new data. 
+
+
+## Machine Learning Workflow
+
+I am borrowing this [Machine Learning Workflow](https://towardsdatascience.com/random-forest-in-python-24d0893d51c0) roadmap.\n
+
+1. State the question and determine required data
+2. Acquire the data in an accessible format
+3. Identify and correct missing data points/anomalies as required
+4. Prepare the data for the machine learning model
+5. Establish a baseline model that you aim to exceed
+6. Train the model on the training data
+7. Make predictions on the test data
+8. Compare predictions to the known test set targets and calculate performance metrics
+9. If performance is not satisfactory, adjust the model, acquire more data, or try a different modeling technique
+10. Interpret model and report results visually and numerically 
+
+I don't think we'll get all the way to number 9, but I'm hopeful we can get to number 8! 
