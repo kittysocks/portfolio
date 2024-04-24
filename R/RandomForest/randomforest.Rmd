@@ -1,17 +1,45 @@
 ---
 title: "Random Forest: Churn Prediction Model"
-output: word_document
+output: html_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE,fig.width = 7.5)
 options(warn = -1)
 library(tidyverse)
+library(reticulate)
 library(rpart)
 library(rpart.plot)
+library(flextable)
+library(ggpubr)
+library(cowplot)
+theme_set(theme_pubr())
 ```
 
-Hello, I want to showcase my understanding and knowledge of Random Forest in my own words and code. Specifically, I wanted to focus on a Churn Prediction model using Random Forest, as this is very applicable the type of work I want to do. I am borrowing heavily from the work of Natassha Selvaraj, as she wrote a wonderful, detailed article for 365 DataScience that gave an in-depth tutorial for a Churn Prediction model in Python. I am also thankful to the countless Youtube and Google searches I've watched for better understanding of the Random Forest concepts. 
+```{r functions, include = FALSE}
+format_output <- function(output_tab, caption, autofit = TRUE) {
+  # Build flextable object for pretty presentation
+  
+  # Isolate header rows, to align and bold them
+  rows <- grep('Information', output_tab[,1], ignore.case = TRUE)
+  
+  # Build and format table
+  tab <- flextable(output_tab)
+  tab <- theme_box(tab)
+  tab <- bold(tab, i = rows, bold = TRUE)
+  if (autofit) tab <- autofit(tab)
+  tab <- align(tab, i = rows, align = 'left')
+  tab <- align(tab, j = 2:ncol(output_tab), align = 'center', part = 'all')
+  tab <- set_caption(tab, caption = caption)
+  return(tab)
+}
+```
+Hello, my name is Molly Miraglia and I'm self teaching myself machine learning, specifically, Random Forest. I'm lucky I have a background in phylogenetics in which I experienced Random Forest in academic research journals/presentations and lab discussion. As I go further into my career, I want to use machine learning for exploratory data analysis and business analytics. I have a strong background in Python, R, SQL, and Tableau and it would be easy to apply these skills to using Random Forest/other machine learning techniques and present my findings to make data driven decisions that can ultimately benefit all stakeholders. I'm using an R Markdown, as I'm most familiar with it, but also I can incorporate code from Python and SQL. I'm writing my understanding and knowledge of Random Forest, not only for others to understand, but also for myself. I feel like once you can explain something in simple terms, you understand the material well.
+
+I also wanted to focus on a Churn Prediction model using Random Forest, as this is very applicable the type of work I want to do. I am borrowing heavily from the work of Natassha Selvaraj, as she wrote a wonderful, detailed article for 365 DataScience that gave an in-depth tutorial for a Churn Prediction model in Python. I also am commenting code and writing out my process as I go along so I can further understand Random Forest. I am also thankful to the countless Youtube and Google searches I've watched for better understanding of the Random Forest concepts. 
+
+### TL;DR
+I'm bragging about my background. Below is my own Random forest explanation from what I've learned online and a Churn Prediction model from an online tutorial.
 
 ## Inspiration and Data Source: 
 * [365 DataScience Tutorial by Natassha Selvaraj](https://365datascience.com/tutorials/python-tutorials/how-to-build-a-customer-churn-prediction-model-in-python/)
@@ -20,20 +48,34 @@ Hello, I want to showcase my understanding and knowledge of Random Forest in my 
 \newpage
 
 ## What do I know About Random Forest?
+### Let's start with Decision Trees
 
-From my background, I know that a random forest is composed of an ensemble of decision trees. Decision trees look like a flow chart, but they actually help make predictions based on data. A decision tree makes an initial statement, known as the root, and then makes decisions. There are two types of decisions, the internal nodes, which split the data into smaller subsets, and then there are leaf nodes, which is an outcome or prediction and does not further split the data. I'll show an [example](https://www.spsanderson.com/steveondata/posts/2023-09-29/index.html) with the famous Iris (flower) data set.
+A random forest is composed of an ensemble of decision trees, which are models that look like a flow chart, but they actually help make predictions based on data. A decision tree makes an initial statement, known as the root, and then can branch off to different nodes based on a decision. There are two types of nodes, the internal nodes, which split the data into smaller subsets, and then there are leaf nodes, which is an outcome or prediction and does not further split the data. I'll show an [example](https://www.spsanderson.com/steveondata/posts/2023-09-29/index.html) with the famous Iris (flower) dataset.
 
-```{r, fig.height = 4, fig.width= 5}
+```{r classification_tree, fig.height = 4, fig.width= 5}
 tree_model <- rpart(Species ~., data = iris, method = "class")
 rpart.plot(tree_model, box.palette = "RdBu", shadow.col = "gray", nn = FALSE, extra = 0)
 ```
 
-The decision tree created shows the decisions leading to accurately naming the species of Iris based on Petal sizes. If we had an Iris with a petal length of 2.8 cm and a petal width of 1.9 cm, we would start at the root node of the decision tree. Since the iris petal length is greater than 2.5 cm, we can move onto the right branch of the decision tree. This internal node then splits the data, and asks about petal width. Since the petal width is greater than 1.8, we can move to the right leaf node, which determines the species is 'virginica'. If the petal length was less than 2.5, the data would not be needed to be split, we could move to the left side of the branch, and get the outcome 'setosa'.  
+The decision tree created shows the decisions leading to accurately naming the species of Iris based on petal measurements. If we selected an Iris from the dataset used to create this decision tree, that had a petal length of 2.8 cm and a petal width of 1.9 cm, we would start at the root node of the decision tree where we would make our first decision about the petal length. Since the iris petal length is greater than 2.5 cm, we can move onto the right branch of the decision tree. This internal node then splits the data, and asks about petal width. Since the petal width is greater than 1.8, we can move to the right leaf node, which determines the species is 'virginica'. If the petal length was less than 2.5, the data would not be needed to be split into further categorization, we could move to the left side of the branch, and get the outcome 'setosa'.  
 
-CART (Classification[Category] and Regression[Numeric] Trees) Decision trees are found using the Gini Impurity, or measures of Entropy, which evaluate the quality of where a decision tree is split. 
+The type of decision trees that random forest is based on is CART, which stands for Classification and Regression Trees. Classification means that the decision tree is splitting based on discrete or categorical data, and the leaf node will be a category. Categorical trees are usually found by finding the Gini Impurity or measure of Entropy. The plot above is considered a classification tree, as the leaf nodes are classifying what species the Iris is. 
 
-Decision trees work well with the data used to create them (training data), but can be highly sensitive to any changes in the data frame. , but they can be inaccurate and not flexible when it comes to using the decision trees on new data. 
+A regression tree means that each leaf node will be a numeric value, and is split based on a numeric measure. Regression trees are usually found using variance reduction or the mean squared error. The plot below is a regression tree which would predict the Sepal Length of a given Iris. If we selected an Iris from the dataset used to create this decision tree, that had a petal length of 4.6 cm and sepal width of 2.9 cm, we would start at the root, which is 5.8 (average sepal length of entire dataset). Since the given sepal length is NOT less than 4.3, we would move to the right branch of the tree. At the 6.5 internal node, we would move to left branch (4.6 < 6.1), and then at the 6.3 internal node, we would move to the left branch again (4.6 < 5.2). At the 6.2 internal node, we would then evaluate the sepal width (2.9 < 3.1), and move to the 6.1 leaf node. 
 
+```{r regression_tree, fig.height = 4, fig.width= 5}
+tree_model <- rpart(Sepal.Length ~ ., data = iris)
+rpart.plot(tree_model, box.palette = "RdBu", shadow.col = "gray", nn = FALSE, extra = 0)
+
+```
+
+Decision trees work well with the data used to create them (training data), but can be highly sensitive to any changes in training data. Notice in my examples, I said 'selected an Iris from the dataset used to create [the] decision tree'. If we took an Iris from outside this dataset, it would not fit this model. The outside dataset has different distributions and characteristics, and the decision tree could not generalize the new data correctly. There is also the problem of a decision tree overfitting the training data. That means the decision tree captured noise and specific patterns from the training data and those patterns and noise would skew a decision made with new data. Decision trees are a good way to form decisions if you're working with one dataset, however usually in research and other business intelligence roles, there will never be just one dataset. This is why we use Random Forest!
+
+In it's simplest form, Random Forest creates an ensemble of decision trees. New data is ran through ALL of the decision trees created and the most popular outcome is the best prediction. Now, there are a bunch of steps in between, but the goal of random forest is to improve prediction accuracy and reduce overfitting.
+
+Will continue writing (bootstrapping, etc.)
+
+\newpage
 
 ## Machine Learning Workflow
 
@@ -51,3 +93,79 @@ I am borrowing this [Machine Learning Workflow](https://towardsdatascience.com/r
 10. Interpret model and report results visually and numerically 
 
 I don't think we'll get all the way to number 9, but I'm hopeful we can get to number 8! 
+
+## Let's get started with the 365Data Science Tutorial
+
+Following the Machine Learning Workflow, we must first state the question and determine required data. Luckily, we are working with given data from the tutorial. The main question in a Churn Prediction Model is usually, what is causing customers to Churn? We can look at the attributes of the data and depending on patterns in the data, we can try and accurately predict new things that will make a customer churn, and fix these issues. 
+
+We can now move onto number 2 in our machine learning worfklow and can read in the dataset from [Kaggle](https://www.kaggle.com/datasets/blastchar/telco-customer-churn). This dataset is customer information of a telephone company, including demographics, customer account information, services that the customer signed up for, and the Churn status. Churn means if a customer unsubscribes/stops using a business's product. For this dataset, the Churn status is if a customer stopped doing business *in the last month*. There are no dates for the churn, it's just a Boolean of yes/no. 
+
+```{python read_df, echo = TRUE, results = "hide"}
+import pandas as pd
+import io
+
+df = pd.read_csv('Customer_Churn.csv')
+
+# Capture the output of df.info()
+buffer = io.StringIO()
+df.info(buf=buffer)
+info_str = buffer.getvalue()
+
+# Extract column, non-null count, and data type information
+info_lines = info_str.split('\n')[2:-3]
+info_data = [line.split()[:3] for line in info_lines]
+
+# Create a DataFrame from the extracted information
+info_df = pd.DataFrame(info_data, columns=['Column', 'Column Name', 'Data Type'])
+```
+
+```{r print df_info_pretty}
+df_info <- py$info_df
+df_info <- slice(df_info, -(1:3)) 
+df_info <- df_info %>% select (-`Data Type`)
+format_output(df_info, caption = "Table 1. Churn Dataset Column Names")
+```
+
+We can see all the column names and data types. We know there are 19 independent variables that are used to predict customer churn. Now we will see what percentage of customers of the dataset have churned.
+
+```{python percent_churned, echo = TRUE, results = "asis"}
+df["Churn"].value_counts()
+```
+
+Now using the value_counts...:
+```{python percent_churned2}
+num_customers = df.shape[0]
+percent_churned = round((1869/num_customers),2) * 100
+```
+```{python, echo = FALSE}
+print("The percent of churned customers in the data set is", str(percent_churned)+"%")
+```
+
+According to the tutorial, we are now dealing with an imbalanced classification problem, since not all customers in the dataset have churned. Feature engineering will be used later to address this problem by creating a balanced dataset before performing Random Forest.
+
+The tutorial now moves to exploratory data analysis, and I will count this part as step 3 of the Machine Learning Workflow. I'm assuming that the data has no anomalies (since this is from Kaggle dataset has been specifically crafted just for Churn Prediction Model purposes). Below is code I could use if I was using a fancy IDE, which gives me all the exploratory analysis I need in one line using the ydata_profiling library. For now, I will just follow the tutorial!
+
+```{python, echo = TRUE}
+#from ydata_profiling import ProfileReport
+
+#profile = ProfileReport(df, title = "Churn Profiling Report")
+```
+
+We are using exploratory analysis to gain a better understanding of the relationship between the column names/independent variables with customer churn. 
+
+```{python}
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
+
+cols = ['gender','SeniorCitizen',"Partner","Dependents"]
+numerical = cols
+
+plt.figure(figsize=(20,4))
+
+for i, col in enumerate(numerical):
+    ax = plt.subplot(1, len(numerical), i+1)
+    sns.countplot(x=str(col), data=df)
+    ax.set_title(f"{col}")
+```
+
