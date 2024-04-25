@@ -1,5 +1,5 @@
 ---
-title: "Random Forest: Churn Prediction Model"
+title: "Random Forest Background: Churn Prediction Model Tutorial"
 output: word_document
 ---
 
@@ -39,7 +39,7 @@ Hello, my name is Molly Miraglia and I'm self teaching myself machine learning, 
 
 I also wanted to focus on a Churn Prediction model using Random Forest, as this is very applicable the type of work I want to do. I am borrowing heavily from the work of Natassha Selvaraj, as she wrote a wonderful, detailed article for 365 DataScience that gave an in-depth tutorial for a Churn Prediction model in Python. I also am commenting code and writing out my process as I go along so I can further understand the Random Forest workflow. I am also thankful to the countless Youtube and Google searches I've watched for better understanding of the Random Forest concepts. 
 
-### TL;DR
+## TL;DR
 I'm bragging about my background. Below is my own Random forest explanation from what I've learned online and a Churn Prediction model from an online tutorial.
 
 ## Inspiration and Data Source: 
