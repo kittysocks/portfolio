@@ -2,7 +2,7 @@
 
 Hello, welcome to my portfolio!
 
-My current projects are propriatery, and I can't show off my programming skills when everything's private! I'll be committing my Python, R and SQL projects here!
+My current work projects are propriatery, and I can't show off my programming skills when everything's private! I'll be committing my Python, R and SQL projects here!
 
 ### Links:
 
